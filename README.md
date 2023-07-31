@@ -1,1 +1,3 @@
-# Note: make this pretty later.
+# My Emacs config
+
+I like emacs (:

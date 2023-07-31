@@ -1,13 +1,15 @@
 #+TITLE: Emacs configuration file
 #+AUTHOR: Pedro Chagas
+#+STARTUP: content
 
-* Melpa
+* Melpa and load-path
 #+BEGIN_SRC emacs-lisp
+  (add-to-list 'load-path "~/.emacs.d/packages/")
   (require 'package)
   (setq package-enable-at-startup nil)
 
   (add-to-list 'package-archives
-               '("melpa" . "https://melpa.org/packages/"))
+	       '("melpa" . "https://melpa.org/packages/"))
 
   (package-initialize)
 #+END_SRC
@@ -18,30 +20,56 @@
     (package-install 'use-package))
 #+END_SRC
 * Appearance
-** Theme
+** Theme and font
 #+BEGIN_SRC emacs-lisp
-  (use-package doom-themes
-    :if window-system
-    :ensure t
-    :config
-    ;;(load-theme 'doom-badger t)
-    (doom-themes-org-config)
-    (doom-themes-visual-bell-config))
-  (load-theme 'doom-badger t)
-#+END_SRC
-** Font
-#+BEGIN_SRC emacs-lisp
-  ;;(set-face-attribute 'default-frame-alist '(font . "terminus-16"))
-  ;;(set-face-attribute 'default nil :font "terminus-16")
-  (set-face-attribute 'default nil :height 100)
+  (use-package ewal
+    :init (setq ewal-use-built-in-always-p nil
+		  ewal-use-built-in-on-failure-p t
+		  ewal-built-in-palette "sexy-material"))
+  (use-package ewal-spacemacs-themes
+    :init (progn
+	    (setq spacemacs-theme-underline-parens t
+		  my:rice:font (font-spec
+				:family "Terminus"
+				:weight 'semi-bold
+				:size 12.0))
+	    (show-paren-mode +1)
+	    (global-hl-line-mode)
+	    (set-frame-font my:rice:font nil t)
+	    (add-to-list  'default-frame-alist
+			  `(font . ,(font-xlfd-name my:rice:font))))
+    :config (progn
+	      (load-theme 'ewal-spacemacs-modern t)
+	      (enable-theme 'ewal-spacemacs-modern)))
 #+END_SRC
 ** Lines
 #+BEGIN_SRC emacs-lisp
 (global-display-line-numbers-mode)
 (setq display-line-numbers-type 'relative)
 #+END_SRC
-* Custom Keybinds
+** Icons
 #+BEGIN_SRC emacs-lisp
+;; Dired with icons:
+(use-package all-the-icons
+   :if (display-graphic-p))
+(add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
+#+END_SRC
+** Startup dashboard
+#+BEGIN_SRC emacs-lisp
+  (use-package dashboard
+    :ensure t
+    :config
+    (dashboard-setup-startup-hook)
+    (setq dashboard-startup-banner "~/.emacs.d/dashboard-pic.png")
+    (setq dashboard-items '((recents  . 5)
+                           (bookmarks . 5)))
+    (setq dashboard-banner-logo-title "Only emacs can save your soul.")) ;; Make script for quotes.
+
+#+END_SRC
+** Transparency
+#+BEGIN_SRC emacs-lisp
+ (set-frame-parameter (selected-frame) 'alpha '(85 . 85))
+ (add-to-list 'default-frame-alist '(alpha . (85 . 85)))
 #+END_SRC
 * Better Search
 #+BEGIN_SRC emacs-lisp
@@ -62,17 +90,10 @@
   (global-subword-mode 1)
   ;; (defalias 'yes-or-no-p 'y-or-n-p)
 #+END_SRC
-* Startup Dashboard
+* Zen mode
 #+BEGIN_SRC emacs-lisp
-  (use-package dashboard
-    :ensure t
-    :config
-    (dashboard-setup-startup-hook)
-    (setq dashboard-startup-banner "~/.emacs.d/dashboard-pic.png")
-    (setq dashboard-items '((recents  . 5)
-                           (bookmarks . 5)))
-    (setq dashboard-banner-logo-title "I have become comfortably numb.")) ;; Make script for quotes.
-
+  (require 'zen-mode)
+  (global-set-key (kbd "C-M-z") 'zen-mode)
 #+END_SRC
 * Better Window Switch
 #+BEGIN_SRC emacs-lisp
@@ -108,11 +129,14 @@
 #+END_SRC  
 * Evil mode
 #+BEGIN_SRC emacs-lisp
-  (use-package evil
-    :ensure t)
-
-  (evil-mode 1)
-  
+    (use-package evil
+      :ensure t
+      :init
+      (setq evil-want-C-u-scroll t)
+      (setq evil-want-C-i-jump nil)
+      :config
+      (evil-mode 1)
+     )
 #+END_SRC  
 * IDE Features
 ** Language Server Protocol
@@ -126,10 +150,12 @@
 	:ensure t
 	:commands lsp-ui-mode)
      #+END_SRC
-** Auto Completion
+** Auto Completion - company
     #+BEGIN_SRC emacs-lisp
-    (use-package company
-	:ensure t)
+      (use-package company
+	  :ensure t)
+
+  (global-set-key (kbd "C-M-c") 'company-mode)
     #+END_SRC
 ** Error Checking
     #+BEGIN_SRC emacs-lisp
@@ -153,7 +179,74 @@
                            (require 'lsp-pyright)
                            (lsp))))
 #+END_SRC
+** Rust
+#+BEGIN_SRC emacs-lisp
+  (use-package rust-mode
+    :ensure t
+    (add-hook 'rust-mode-hook
+	      (lambda () (setq indent-tabs-mode nil)))
+    )
+
+#+END_SRC
+* Godot integration
+#+BEGIN_SRC emacs-lisp
+  (add-to-list 'load-path "~/.emacs.d/packages/emacs-gdscript-mode/")
+  (require 'gdscript-mode)
+#+END_SRC
+* Org mode specifics
+* Treemacs
+#+BEGIN_SRC emacs-lisp
+  (use-package treemacs
+    :ensure t
+    :defer t
+    :bind
+    (("C-c r" . treemacs-refresh))
+    (("C-c t" . treemacs))
+    :config
+    (setq treemacs-width 30))
+    (treemacs-project-follow-mode t)
+
+  (defun hide-mode-line-in-treemacs ()
+    (setq-local mode-line-format nil))
+
+  (add-hook 'treemacs-mode-hook 'hide-mode-line-in-treemacs)
+#+END_SRC
+
+* Centaur tabs
+#+BEGIN_SRC emacs-lisp
+  (use-package centaur-tabs
+    :ensure t
+    :config
+    (setq centaur-tabs-set-bar 'over
+	  centaur-tabs-set-icons t
+	  centaur-tabs-gray-out-icons 'buffer
+	  centaur-tabs-height 30
+	  centaur-tabs-cycle-scope 'tabs
+	  centaur-tabs-show-count t
+	  centaur-tabs-style "bar"
+	  centaur-tabs-show-new-tab-button t)
+    (centaur-tabs-mode t)
+
+    (global-set-key (kbd "M-l") 'centaur-tabs-forward)
+    (global-set-key (kbd "M-h") 'centaur-tabs-backward)
+    (global-set-key (kbd "M-j") 'centaur-tabs-forward-group)
+    (global-set-key (kbd "M-k") 'centaur-tabs-backward-group)
+    )
+#+END_SRC
+* Ident guides
+#+BEGIN_SRC emacs-lisp
+  (use-package highlight-indent-guides
+    :ensure t
+    :hook (prog-mode . highlight-indent-guides-mode)
+    :config
+    (setq highlight-indent-guides-method 'character)
+    (setq highlight-indent-guides-character ?\|)
+    (setq highlight-indent-guides-responsive 'top)
+    (highlight-indent-guides-mode t)
+    )
+
+#+END_SRC
 * Extra
 #+BEGIN_SRC emacs-lisp
-(setq initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
+  (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
 #+END_SRC
